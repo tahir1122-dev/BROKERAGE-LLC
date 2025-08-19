@@ -1,10 +1,20 @@
 import { Button } from "@/components/ui/button";
 import { Phone, Mail, MapPin, Clock, Menu, X } from "lucide-react";
 import { NavLink, Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 const Header = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // close menu when switching to desktop widths
+  useEffect(() => {
+    function handleResize() {
+      if (window.innerWidth >= 1024) setMobileOpen(false);
+    }
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [setMobileOpen]);
 
   return (
     <>
@@ -80,6 +90,7 @@ const Header = () => {
 
 export default Header;
 
+
 // Mobile menu components (kept in same file for simplicity)
 function MobileMenuToggle({ open, setOpen }: { open: boolean; setOpen: (v: boolean | ((s: boolean) => boolean)) => void }) {
   return (
@@ -90,21 +101,52 @@ function MobileMenuToggle({ open, setOpen }: { open: boolean; setOpen: (v: boole
 }
 
 function MobileMenu({ open, setOpen }: { open: boolean; setOpen: (v: boolean) => void }) {
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const firstLinkRef = useRef<HTMLAnchorElement | null>(null);
+
+  // close on ESC and outside click, and focus first link on open
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+
+    function onDocClick(e: MouseEvent) {
+      if (!menuRef.current) return;
+      if (!(e.target instanceof Node)) return;
+      if (!menuRef.current.contains(e.target)) setOpen(false);
+    }
+
+    if (open) {
+      document.addEventListener("keydown", onKey);
+      document.addEventListener("mousedown", onDocClick);
+      setTimeout(() => firstLinkRef.current?.focus(), 50);
+    }
+
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onDocClick);
+    };
+  }, [open, setOpen]);
+
   if (!open) return null;
 
   return (
-    <div className="lg:hidden bg-white border-b">
-      <div className="container mx-auto px-4 py-4">
-        <nav className="flex flex-col space-y-3">
-          <NavLink to="/" onClick={() => setOpen(false)} className={({ isActive }) => `font-medium ${isActive ? "text-primary" : "text-gray-700 hover:text-primary"}`}>Home</NavLink>
-          <a href="#services" onClick={() => setOpen(false)} className="text-gray-700 hover:text-primary font-medium">Services</a>
-          <NavLink to="/about" onClick={() => setOpen(false)} className={({ isActive }) => `font-medium ${isActive ? "text-primary" : "text-gray-700 hover:text-primary"}`}>About</NavLink>
-          <NavLink to="/payment-process" onClick={() => setOpen(false)} className={({ isActive }) => `font-medium ${isActive ? "text-primary" : "text-gray-700 hover:text-primary"}`}>Payment Process</NavLink>
-          <NavLink to="/contact" onClick={() => setOpen(false)} className={({ isActive }) => `font-medium ${isActive ? "text-primary" : "text-gray-700 hover:text-primary"}`}>Contact</NavLink>
-          <a href="/agreement" className="mt-2" onClick={() => setOpen(false)}>
-            <Button className="w-full border px-3 py-2">Send Agreement</Button>
-          </a>
-        </nav>
+    // backdrop + slide down menu
+    <div className="lg:hidden fixed inset-0 z-40">
+      <div className="absolute inset-0 bg-black/40" aria-hidden="true" />
+      <div ref={menuRef} role="dialog" aria-modal="true" className="absolute top-0 left-0 right-0 bg-white border-b shadow-md transform transition-transform duration-200">
+        <div className="container mx-auto px-4 py-4">
+          <nav className="flex flex-col space-y-3">
+            <NavLink to="/" ref={firstLinkRef} onClick={() => setOpen(false)} className={({ isActive }) => `font-medium ${isActive ? "text-primary" : "text-gray-700 hover:text-primary"}`}>Home</NavLink>
+            <a href="#services" onClick={() => setOpen(false)} className="text-gray-700 hover:text-primary font-medium">Services</a>
+            <NavLink to="/about" onClick={() => setOpen(false)} className={({ isActive }) => `font-medium ${isActive ? "text-primary" : "text-gray-700 hover:text-primary"}`}>About</NavLink>
+            <NavLink to="/payment-process" onClick={() => setOpen(false)} className={({ isActive }) => `font-medium ${isActive ? "text-primary" : "text-gray-700 hover:text-primary"}`}>Payment Process</NavLink>
+            <NavLink to="/contact" onClick={() => setOpen(false)} className={({ isActive }) => `font-medium ${isActive ? "text-primary" : "text-gray-700 hover:text-primary"}`}>Contact</NavLink>
+            <a href="/agreement" className="mt-2" onClick={() => setOpen(false)}>
+              <Button className="w-full border px-3 py-2">Send Agreement</Button>
+            </a>
+          </nav>
+        </div>
       </div>
     </div>
   );
