@@ -61,4 +61,5 @@ dist-ssr
 # ignore OneDrive wrapper
 OneDrive/
 ADVANCED-FREIGHT-temp/
+!public/_redirects
 
